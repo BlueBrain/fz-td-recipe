@@ -8,4 +8,5 @@ default:
 foo:
     stage: build
     script:
-        - echo "Guten Abent!"
+        - echo "Guten Abend!"
+        - srun /bin/bash -c "echo 'Gute Nacht!'"
