@@ -1,0 +1,8 @@
+default:
+    tags:
+        - el_pollo
+
+foo:
+    stage: build
+    script:
+        - echo "Buenos Dias"
