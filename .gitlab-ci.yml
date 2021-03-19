@@ -6,3 +6,4 @@ foo:
     stage: build
     script:
         - echo "Buenos Dias"
+        - echo "Gracias"
