@@ -10,6 +10,6 @@ foo:
     script:
         - echo "Guten Abend!"
         - srun /bin/bash -c "echo 'Gute Nacht!'"
-        - . /etc/profile.d/module.sh
+        - . /etc/profile.d/modules.sh
         - module load unstable hpe-mpi
         - mpirun -n3 /bin/bash -c "echo 'Hallo!'"
