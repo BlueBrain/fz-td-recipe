@@ -1,5 +1,5 @@
 variables:
-    bb5_ntasks=6
+    bb5_ntasks: 6
 
 default:
     tags:
