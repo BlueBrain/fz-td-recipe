@@ -14,6 +14,5 @@ foo:
         - module load unstable hpe-mpi
         - mpirun -n 3 /bin/bash -c "echo 'Hallo!'"
         - srun -c 1 -n 7 /bin/bash -c "echo 'Guten Morgen!'"
-        - mpirun -n 7 /bin/bash -c "echo 'Hallo!'"
         - srun -n 4 --wrap "sleep 20" &
         - srun -n 4 --wrap "sleep 20"
