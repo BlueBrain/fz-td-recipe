@@ -10,3 +10,4 @@ foo:
     script:
         - echo "Guten Abend!"
         - srun /bin/bash -c "echo 'Gute Nacht!'"
+        - mpirun -n3 /bin/bash -c "echo 'Hallo!'"
