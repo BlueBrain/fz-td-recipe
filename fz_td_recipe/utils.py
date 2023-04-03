@@ -18,5 +18,4 @@ def load_xml(recipe):
     except IOError as err:
         logger.warning("error while reading xml: %s", err)
         raise err
-    else:
-        return tree.getroot()
+    return tree.getroot()

@@ -5,6 +5,7 @@ import logging
 import re
 from collections import defaultdict
 from copy import deepcopy
+from functools import cached_property
 from io import StringIO
 from textwrap import indent
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
@@ -243,7 +244,7 @@ def singleton(fct: Union[Callable, None] = None, implicit: bool = False) -> Call
     return _deco
 
 
-_DIRECTIONAL_ATTR = re.compile(r"^(from|to)([A-Z]\w+)$")
+_DIRECTIONAL_ATTR = re.compile(r"^(from|to)([A-Z]\w*)$")
 
 
 class PathwayProperty(Property):
@@ -342,7 +343,63 @@ class PathwayPropertyGroup(PropertyGroup):
                     covered[name].add(key)
         return valid and all(_check(name, covered[name]) for name in covered)
 
-    @property
+    def __delitem__(self, key, /):
+        """Delete self[key]."""
+        self.__dict__.pop("required", None)
+        super().__delitem__(key)
+
+    def __getitem__(self, key, /):
+        """Returns the property corresponding to key."""
+        self.__dict__.pop("required", None)
+        return super().__getitem__(key)
+
+    def __iadd__(self, value, /):
+        """Implement self+=value."""
+        self.__dict__.pop("required", None)
+        return super().__iadd__(value)
+
+    def __setitem__(self, key, value, /):
+        """Set self[key] to value."""
+        self.__dict__.pop("required", None)
+        super().__setitem__(key, value)
+
+    def append(self, rule, /):
+        """Append rule to the end of the group."""
+        self.__dict__.pop("required", None)
+        super().append(rule)
+
+    def clear(self, /):
+        """Remove all items from group."""
+        self.__dict__.pop("required", None)
+        super().clear()
+
+    def extend(self, iterable, /):
+        """Extend group by appending rules from the iterable."""
+        self.__dict__.pop("required", None)
+        super().extend(iterable)
+
+    def insert(self, index, rule, /):
+        """Insert rule before index."""
+        self.__dict__.pop("required", None)
+        super().insert(index, rule)
+
+    def pop(self, index=-1, /):
+        """Remove and return rule at index (default last).
+
+        Raises ValueError if the value is not present.
+        """
+        self.__dict__.pop("required", None)
+        return super().pop(index)
+
+    def remove(self, value, /):
+        """Remove first occurrence of value.
+
+        Raises ValueError if the value is not present.
+        """
+        self.__dict__.pop("required", None)
+        return super().remove(value)
+
+    @cached_property
     def required(self) -> List[str]:
         """The required attributes for this property group.
 
@@ -366,9 +423,10 @@ class PathwayPropertyGroup(PropertyGroup):
         """
         cols = []
         for col in self._kind.columns():
-            values = set(getattr(e, col, None) for e in self)
-            if values != set("*"):
-                cols.append(col)
+            for e in self:
+                if getattr(e, col, "*") != "*":
+                    cols.append(col)
+                    break
         return cols
 
     def pathway_index(

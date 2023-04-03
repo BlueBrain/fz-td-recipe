@@ -4,7 +4,47 @@ from lxml import etree
 
 import pytest
 
-from fz_td_recipe.property import Property, PropertyGroup
+from fz_td_recipe.property import PathwayProperty, PathwayPropertyGroup, Property, PropertyGroup
+
+
+def test_pathway_property():
+    class FakeProperty(PathwayProperty):
+        _attributes = {"fromX": "*", "toY": "*"}
+
+    class FakeGroup(PathwayPropertyGroup):
+        _kind = FakeProperty
+
+    g = FakeGroup([FakeProperty()])
+    assert g.required == []
+
+    g.append(FakeProperty(fromX="spam"))
+    assert g.required == ["fromX"]
+
+    g[-1].fromX = "*"
+    assert g.required == []
+
+    g.extend([FakeProperty(fromX="spam")])
+    assert g.required == ["fromX"]
+
+    g.clear()
+    assert g.required == []
+
+    g += [FakeProperty(fromX="spam")]
+    assert g.required == ["fromX"]
+
+    g[0] = FakeProperty()
+    assert g.required == []
+
+    g.insert(0, FakeProperty(fromX="ham"))
+    assert g.required == ["fromX"]
+
+    g.pop(0)
+    assert g.required == []
+
+    g += [FakeProperty(fromX="spam")]
+    assert g.required == ["fromX"]
+    g.remove(g[-1])
+    assert g.required == []
 
 
 def test_values():
