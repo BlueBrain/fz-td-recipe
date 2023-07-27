@@ -60,7 +60,8 @@ def test_values():
     del f.a
     assert str(f) == "<Faker />"
 
-    g = Faker(defaults={"a": 5})
+    with Faker.with_defaults({"a": 5}):
+        g = Faker()
     assert str(g) == "<Faker />"
     assert g.a == 5
 

@@ -4,8 +4,8 @@ import itertools
 import logging
 import re
 from collections import defaultdict
-from copy import deepcopy
-from functools import cached_property
+from contextlib import contextmanager
+from functools import cached_property, lru_cache
 from io import StringIO
 from textwrap import indent
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
@@ -34,7 +34,22 @@ class NotFound(Exception):
         super().__init__(f"cannot find {cls.__name__}")
 
 
-class Property:
+class PropertyMeta(type):
+    """Simple metadata class to ensure that attributes, aliases, and defaults are set."""
+
+    def __new__(mcs, name, bases, dct):
+        """Creates the new type."""
+        cls = super().__new__(mcs, name, bases, dct)
+        cls._local_defaults = dict(cls._attributes)
+
+        for key, value in cls._attribute_alias.items():
+            if value not in cls._attributes:
+                raise TypeError(f"cannot alias non-existant {value} to {key} in {name}")
+
+        return cls
+
+
+class Property(metaclass=PropertyMeta):
     """Generic property class that should be inherited from."""
 
     _name: Union[str, None] = None
@@ -50,62 +65,87 @@ class Property:
         When passing `strict`, will raise an `AttributeError` if an attribute is present
         that is not defined in `_attributes` or `_attribute_alias`.
         """
-        defaults = kwargs.pop("defaults", {})
         self._i = kwargs.pop("index", None)
         self._imlicit = self._implicit
-        self._local_attributes = deepcopy(self._attributes)
+        # Stores reference to local defaults.  Allows to change the _local_defaults class property
+        self._local_defaults = self._local_defaults
         self._values: Dict[str, Any] = {}
         for key, value in kwargs.items():
-            try:
-                setattr(self, key, value)
-            except AttributeError:
-                if strict:
-                    raise
+            k = self._attribute_alias.get(key, key)
+            if k in self._local_defaults:
+                self._values[k] = self._converter(k)(value)
+            elif strict:
+                raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{k}'")
+
+    @classmethod
+    @lru_cache
+    def _converter(cls, attr):
+        """Returns a type used to convert strings into the corresponding attribute."""
+        kind = cls._local_defaults[attr]
+        if not isinstance(kind, type):
+            kind = type(kind)
+        if kind is str:
+            return lambda x: x
+        return kind
+
+    @classmethod
+    @contextmanager
+    def with_defaults(cls, defaults):
+        """Temporarily set default values for attributes.
+
+        To be used when many properties are read at the same time with different default
+        values compared to the class wide defaults.  The property initialization will copy
+        a reference to these local defaults.
+        """
+        old_values = cls._local_defaults
+        cls._local_defaults = dict(old_values)
         for key, value in defaults.items():
-            if key not in self._local_attributes:
-                raise TypeError(
-                    f"cannot set a default for non-existant attribute {key} in {type(self)}"
-                )
-            self._local_attributes[key] = self._convert(key, value)
-        for key, value in self._attribute_alias.items():
-            if not hasattr(self, value):
-                raise TypeError(f"cannot alias non-existant {value} to {key} in {type(self)}")
+            if key not in cls._local_defaults:
+                raise TypeError(f"cannot set a default for non-existant attribute {key} in {cls}")
+            cls._local_defaults[key] = cls._converter(key)(value)
+        try:
+            yield
+        finally:
+            cls._local_defaults = old_values
 
     def __delattr__(self, attr):
         """Deletes attribute `attr`, even if it is aliased."""
-        resolved_name = self._attribute_alias.get(attr, attr)
-        if resolved_name in self._values:
-            del self._values[resolved_name]
+        if attr in self._values:
+            del self._values[attr]
 
     def __getattr__(self, attr):
-        """Gets attribute `attr`, taking aliases and inheritance into account."""
-        resolved_name = self._attribute_alias.get(attr, attr)
-        if attr.startswith("_"):
+        """Gets attribute `attr`, taking inheritance into account."""
+        try:
             return self.__dict__[attr]
-        if resolved_name in self._local_attributes:
-            default = self._local_attributes[resolved_name]
-            if isinstance(default, type):
-                default = None
-            return self._values.get(resolved_name, default)
+        except KeyError:
+            try:
+                return self._values[attr]
+            except KeyError:
+                try:
+                    default = self._local_defaults[attr]
+                    if isinstance(default, type):
+                        return None
+                    return default
+                except KeyError:
+                    pass
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{attr}'")
 
     def __setattr__(self, attr, value):
-        """Sets attribute `attr`, taking aliases and data types into account."""
-        resolved_name = self._attribute_alias.get(attr, attr)
+        """Sets attribute `attr`, taking data types into account."""
         if attr.startswith("_"):
             super().__setattr__(attr, value)
-        elif resolved_name in self._local_attributes:
-            self._values[resolved_name] = self._convert(resolved_name, value)
+        elif attr in self._local_defaults:
+            self._values[attr] = self._converter(attr)(value)
         else:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{attr}'")
 
     def __getstate__(self):
         """State needed for pickling."""
-        return (self._i, self._implicit, self._local_attributes, self._values)
+        return (self._i, self._implicit, self._local_defaults, self._values)
 
     def __setstate__(self, state):
         """Restoration after pickling."""
-        self._i, self._implicit, self._local_attributes, self._values = state
+        self._i, self._implicit, self._local_defaults, self._values = state
 
     def __repr__(self):
         """More legible representation."""
@@ -124,18 +164,6 @@ class Property:
             return ""
         tag = self._name or type(self).__name__
         return f"<{tag}{attrs} />"
-
-    def _convert(self, attr, value):
-        kind = self._local_attributes[attr]
-        if not isinstance(kind, type):
-            kind = type(kind)
-        new_value = kind(value)
-        round_trip = type(value)(new_value)
-        if _sanitize(round_trip) != _sanitize(value):
-            raise TypeError(
-                f"conversion mismatch: {attr}={kind.__name__}({value}) results in {new_value}"
-            )
-        return new_value
 
     def validate(self, _: Dict[str, List[str]] = None) -> bool:
         """Validates attribute values."""
@@ -198,10 +226,10 @@ class PropertyGroup(list):
         if hasattr(cls._kind, "_alias"):
             allowed.add(cls._kind._alias)
         items = [i for i in root[0].iter() if i.tag in allowed]
-        data = [
-            cls._kind(strict=strict, index=i, defaults=defaults, **item.attrib)
-            for i, item in enumerate(items)
-        ]
+        with cls._kind.with_defaults(defaults):
+            data = [
+                cls._kind(strict=strict, index=i, **item.attrib) for i, item in enumerate(items)
+            ]
         return cls(data, defaults=defaults)
 
 

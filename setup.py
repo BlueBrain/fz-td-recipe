@@ -26,7 +26,7 @@ setup(
         "Source": "git@bbpgitlab.epfl.ch:hpc/circuit-building/fz-td-recipe.git",
     },
     license="BBP-internal-confidential",
-    install_requires=["lxml", "numpy"],
+    install_requires=["lxml", "numpy", "pandas"],
     packages=find_packages(),
     python_requires=">=3.9",
     extras_require={"docs": ["sphinx", "sphinx-bluebrain-theme"]},

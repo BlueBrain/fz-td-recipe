@@ -88,7 +88,7 @@ class SynapseClasses(PropertyGroup):
             values = sum(getattr(d, attr, None) is not None for d in data)
             if values == 0:  # no values, remove attribute
                 for d in data:
-                    del d._local_attributes[attr]
+                    delattr(d, attr)
             elif values != len(data):
                 raise ValueError(
                     f"Attribute {attr} needs to be set/unset" f" for all {cls._name} simultaneously"
