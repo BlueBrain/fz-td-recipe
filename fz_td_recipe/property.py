@@ -5,25 +5,18 @@ import logging
 import re
 from collections import defaultdict
 from contextlib import contextmanager
+from copy import deepcopy
 from functools import cached_property, lru_cache
 from io import StringIO
 from textwrap import indent
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
+import pandas as pd
 
 from . import utils
 
-SURROUNDING_ZEROS = re.compile(r"^0*([1-9][0-9]*|0(?=\.))(?:|.0+|(.[0-9]*[1-9]+)0*)$")
-
-
 logger = logging.getLogger(__name__)
-
-
-def _sanitize(value):
-    if isinstance(value, str):
-        return SURROUNDING_ZEROS.sub(r"\1\2", value)
-    return value
 
 
 class NotFound(Exception):
@@ -198,6 +191,21 @@ class PropertyGroup(list):
         tag = self._name or type(self).__name__
         return f"<{tag}{attrs}>{inner}</{tag}>"
 
+    def to_pandas(self):
+        """Convert the property list to a Pandas DataFrame."""
+        data = {a: [] for a in self._kind._attributes}
+        for e in self:
+            for k, vs in data.items():
+                vs.append(getattr(e, k))
+        result = pd.DataFrame()
+        for k, vs in data.items():
+            kind = self._kind._attributes[k]
+            if kind is str or isinstance(kind, str):
+                result[k] = pd.Series(vs, dtype="category")
+            else:
+                result[k] = vs
+        return result
+
     @classmethod
     def load(cls, xml, strict: bool = True):
         """Load a list of properties defined by the class."""
@@ -293,7 +301,41 @@ class PathwayProperty(Property):
         """
         return sorted(k for k in cls._attributes if _DIRECTIONAL_ATTR.match(k))
 
-    def __call__(self, values: Dict[str, List[str]]) -> Iterator[Tuple[Dict[str, str], Any]]:
+    def expand(self, values: Dict[str, List[str]]):
+        """Expand the pathway for partial attribute wildcards.
+
+        Expand the property given the possible matching attribute values in `values`,
+        leaving pure wildcards intact.
+        Returns an iterator over the property with expanded values.
+
+        >>> class rule(PathwayProperty):
+        ...     _attributes = {'toMType': '*', 'fromEType': '*', 'something': str}
+        >>> r = rule(toMType='B*', fromEType='*')
+        >>> list(r.expand({'toMType': ['Foo', 'Bar', 'Baz']}))
+        [<rule toMType="Bar" fromEType="*" />, <rule toMType="Baz" fromEType="*" />]
+        >>> r = rule(toMType='*', fromEType='*')
+        >>> list(r.expand({'toMType': ['Foo', 'Bar', 'Baz']}))
+        [<rule toMType="*" fromEType="*" />]
+        """
+        expansions = []
+        for k, vs in values.items():
+            val = getattr(self, k)
+            if val == "*" or val in vs:
+                expansions.append([(k, val)])
+            elif "*" in val:
+                expansions.append([(k, v) for v in fnmatch.filter(vs, val)])
+            else:
+                # recipe value is not in the passed list for this attribute
+                return
+        for cols in itertools.product(*expansions):
+            replica = deepcopy(self)
+            for k, v in cols:
+                setattr(replica, k, v)
+            yield replica
+
+    def __call__(
+        self, values: Dict[str, List[str]], keep_generic=False
+    ) -> Iterator[Tuple[Dict[str, str], Any]]:
         """Expand the pathway for all possible attribute values.
 
         Expand the property given the possible matching attribute values in `values`.
@@ -428,6 +470,11 @@ class PathwayPropertyGroup(PropertyGroup):
         return super().remove(value)
 
     @cached_property
+    def columns(self) -> List[str]:
+        """The columns of all properties in the list."""
+        return self._kind.columns()
+
+    @cached_property
     def required(self) -> List[str]:
         """The required attributes for this property group.
 
@@ -540,6 +587,66 @@ class PathwayPropertyGroup(PropertyGroup):
             idx = key % len(values[attr])
             key //= len(values[attr])
             result[attr] = values[attr][idx]
+        return result
+
+    # pylint: disable=arguments-differ
+    def to_pandas(self, values: Dict[str, List[str]]) -> pd.DataFrame:
+        """Convert the property list to as a Pandas DataFrame.
+
+        Any directional attribute will be converted to an integer representation,
+        corresponding to the index within the map in `values`.  The integer columns will
+        have a `_i` suffix. Any generic wildcard in the form of just `*` will be assigned
+        a value of -1.
+
+        The passed `values` will also be used to expand any *partial* wildcards in the
+        properties.  The corresponding property will be repeated for all matching values.
+
+        Columns that consist of purely -1 will be dropped.
+
+        >>> from fz_td_recipe.parts.touch_connections import ConnectionRules
+        >>> rules = ConnectionRules.load('''
+        ... <blueColumn>
+        ...   <ConnectionRules>
+        ...     <mTypeRule fromMType="*" toMType="B*" />
+        ...     <mTypeRule fromMType="*" toMType="Bar" />
+        ...     <mTypeRule fromMType="*" toMType="Bar" toRegion="Spam" />
+        ...   </ConnectionRules>
+        ... </blueColumn>
+        ... ''')
+        >>> values = {
+        ...     'toMType': ['Bar', 'Baz'],
+        ...     'toRegion': ['Ham', 'Eggs', 'Spam']
+        ... }
+        >>> df = rules.to_pandas(values)
+        >>> len(df)
+        4
+        >>> list(df["toMType_i"])
+        [0, 1, 0, 0]
+        >>> list(df["toRegion_i"])
+        [-1, -1, -1, 2]
+        >>> "fromRegion_i" in df.columns
+        False
+        """
+        exclude = set(self.columns) - set(self.required)
+        data = {a: [] for a in self._kind._attributes if a not in exclude}
+        for rule in self:
+            for r in rule.expand(values):
+                for k, vs in data.items():
+                    vs.append(getattr(r, k))
+        result = pd.DataFrame()
+        for k, vs in values.items():
+            if k in data:
+                mapping = {k: n for n, k in enumerate(vs)} | {"*": -1}
+                # result[k] = pd.Series(data[k], dtype="string")
+                result[f"{k}_i"] = (
+                    pd.Series(data.pop(k), dtype="string").map(mapping).astype("int16")
+                )
+        for k, vs in data.items():
+            kind = self._kind._attributes[k]
+            if kind is str or isinstance(kind, str):
+                result[k] = pd.Series(vs, dtype="category")
+            else:
+                result[k] = vs
         return result
 
     def to_matrix(self, values: Dict[str, List[str]]) -> np.array:
