@@ -1,4 +1,5 @@
 """Basic components to build XML recipes."""
+
 import fnmatch
 import itertools
 import logging

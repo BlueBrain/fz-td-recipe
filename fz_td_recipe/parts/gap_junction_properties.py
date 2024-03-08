@@ -1,4 +1,5 @@
 """Properties for gap-junctions."""
+
 from ..property import Property, singleton
 
 

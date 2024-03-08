@@ -1,4 +1,5 @@
 """Settings relating to the structure of the connectome."""
+
 import logging
 from typing import Dict, List
 

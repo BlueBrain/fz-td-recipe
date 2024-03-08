@@ -1,13 +1,14 @@
 """Test the seed part
 """
+
 import pytest
 
 from io import StringIO
-from fz_td_recipe import Recipe
+from fz_td_recipe import XMLRecipe
 
 
 def test_default_seeds():
-    r = Recipe(StringIO(SEEDS_ABSENT))
+    r = XMLRecipe(StringIO(SEEDS_ABSENT))
     assert r.seeds.synapseSeed == 0
     assert str(r) == SEEDS_ABSENT
 
@@ -21,7 +22,7 @@ def test_default_seeds():
 
 
 def test_partial_seeds():
-    r = Recipe(StringIO(SEEDS_PARTIAL.format("synapseSeed", 123)))
+    r = XMLRecipe(StringIO(SEEDS_PARTIAL.format("synapseSeed", 123)))
     assert r.seeds.synapseSeed == 123
 
     r.seeds.synapseSeed = 5

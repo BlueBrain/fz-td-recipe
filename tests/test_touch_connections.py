@@ -2,33 +2,33 @@
 """
 
 from io import StringIO
-from fz_td_recipe import Recipe
+from fz_td_recipe import XMLRecipe
 
 
 def test_rule_expansion():
-    r = Recipe(StringIO(SOME_PROPERTIES))
+    r = XMLRecipe(StringIO(SOME_PROPERTIES))
     expansion = list(r.connection_rules[0]({"toMType": ["BAR"], "toRegion": ["NONE"]}))
     assert len(expansion) == 1
     assert set(expansion[0][0]) == set(["toMType", "toRegion"])
 
 
 def test_rule_requirements():
-    r = Recipe(StringIO(SOME_PROPERTIES))
+    r = XMLRecipe(StringIO(SOME_PROPERTIES))
     assert r.connection_rules.required == ["toMType", "toRegion"]
 
 
 def test_rule_validity():
-    r = Recipe(StringIO(SOME_PROPERTIES))
+    r = XMLRecipe(StringIO(SOME_PROPERTIES))
     assert r.connection_rules.validate({"toMType": ["BAR"], "toRegion": ["NONE"]})
 
 
 def test_rule_invalidity():
-    r = Recipe(StringIO(SOME_PROPERTIES))
+    r = XMLRecipe(StringIO(SOME_PROPERTIES))
     assert not r.connection_rules.validate({"toMType": ["FOO", "BAR"], "toRegion": ["NONE"]})
 
 
 def test_rule_matrix():
-    r = Recipe(StringIO(SOME_PROPERTIES))
+    r = XMLRecipe(StringIO(SOME_PROPERTIES))
     cr = r.connection_rules
     matrix = cr.to_matrix(
         {

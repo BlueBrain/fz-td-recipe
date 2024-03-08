@@ -1,0 +1,192 @@
+type: object
+additionalProperties: false
+$defs:
+  section_type:
+    enum: ["*", "soma", "axon", "dendrite", "apical", "basal"]
+  connection_rule:
+    type: object
+    additionalProperties: false
+    patternProperties:
+      "^(src|dst)_([em]type|region|synapse_class)$":
+        type: string
+    properties:
+      active_fraction:
+        type: number
+      bouton_reduction_factor:
+        type: number
+      cv_syns_connection:
+        type: number
+      mean_syns_connection:
+        type: number
+      probability:
+        type: number
+      stdev_syns_connection:
+        type: number
+      p_A:
+        type: number
+      pMu_A:
+        type: number
+    oneOf:
+      - required: [mean_syns_connection, stdev_syns_connection, active_fraction]
+        not:
+          required: [bouton_reduction_factor, cv_syns_connection, probability, p_A, pMu_A]
+      - required: [bouton_reduction_factor, cv_syns_connection, active_fraction]
+        not:
+          required: [mean_syns_connection, stdev_syns_connection, probability, p_A, pMu_A]
+      - required: [bouton_reduction_factor, cv_syns_connection, mean_syns_connection]
+        not:
+          required: [active_fraction, stdev_syns_connection, probability, p_A, pMu_A]
+      - required: [bouton_reduction_factor, cv_syns_connection, probability]
+        not:
+          required: [active_fraction, stdev_syns_connection, mean_syns_connection, p_A, pMu_A]
+      - required: [bouton_reduction_factor, pMu_A, p_A]
+        not:
+          required: [cv_syns_connection, probability, stdev_syns_connection, mean_syns_connection]
+properties:
+  bouton_distances:
+    additionalProperties: false
+    properties:
+      excitatory_synapse_distance:
+        description: the minimum distance from the soma for a synapse of post-synaptic excitatory cells
+        minimum: 0
+        type: number
+      inhibitory_synapse_distance:
+        description: the minimum distance from the soma for a synapse of post-synaptic inhibitory cells
+        minimum: 0
+        type: number
+    type: object
+  bouton_interval:
+    type: object
+    additionalProperties: false
+    description: Settings used to redistribute touches
+    properties:
+      max_distance:
+        description: maximum distance between two synapses in a touch region
+        minimum: 0
+        type: number
+      min_distance:
+        description: minimum distance between two synapses
+        minimum: 0
+        type: number
+      region_gap:
+        description: the minimum distance between two areas designated as touch regions
+        minimum: 0
+        type: number
+  seed:
+    description: Seed used when generating random numbers to sample reduce and cut survival and synaptic properties
+    type: integer
+  structural_spine_lengths:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      properties:
+        mtype:
+          type: string
+        spine_length:
+          minimum: 0
+          type: number
+      required:
+      - mtype
+      - spine_length
+  touch_reduction:
+    type: object
+    additionalProperties: false
+    required: ["survival_rate"]
+    properties:
+      survival_rate:
+        type: number
+  touch_rules:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: ["src_mtype", "dst_mtype"]
+      properties:
+        src_mtype:
+          type: string
+        dst_mtype:
+          type: string
+        afferent_section_type:
+          $ref: "#/$defs/section_type"
+        efferent_section_type:
+          $ref: "#/$defs/section_type"
+  synapse_reposition:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: ["src_mtype", "dst_mtype", "class"]
+      properties:
+        src_mtype:
+          type: string
+        dst_mtype:
+          type: string
+        class:
+          enum: ["AIS"]
+  connection_rules:
+    type: array
+    items:
+      $ref: "#/$defs/connection_rule"
+  gap_junction_properties:
+    type: object
+    additionalProperties: false
+    properties:
+      conductance:
+        type: number
+  synapse_properties:
+    type: object
+    additionalProperties: false
+    required: ["classes", "rules"]
+    properties:
+      classes:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - class
+            - conductance
+            - conductance_sd
+            - decay_time
+            - decay_time_sd
+            - depression_time
+            - depression_time_sd
+            - facilitation_time
+            - facilitation_time_sd
+            - n_rrp_vesicles
+            - u_syn
+            - u_syn_sd
+          properties:
+            class:
+              type: string
+              pattern: "^[EI][A-Za-z0-9-_]+$"
+            n_rrp_vesicles:
+              type: number
+            conductance_scale_factor:
+              type: number
+            u_hill_coefficient:
+              type: number
+          patternProperties:
+            "^((decay|depression|facilitation)_time|conductance|u_syn)(_sd)?":
+              type: number
+      rules:
+        oneOf:
+          - type: array
+            items:
+              type: object
+              additionalProperties: false
+              minProperties: 2
+              required: ["class"]
+              properties:
+                axonal_conduction_velocity:
+                  type: number
+                neural_transmitter_release_delay:
+                  type: number
+                class:
+                  type: string
+                  pattern: "^[EI][A-Za-z0-9-_]+$"
+              patternProperties:
+                "^(src|dst)_([em]type|region|synapse_class)$":
+                  type: string
+          - type: string

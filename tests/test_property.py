@@ -1,8 +1,8 @@
 """Test the abstract property functionality
 """
+
 from lxml import etree
 
-import pytest
 
 from fz_td_recipe.property import PathwayProperty, PathwayPropertyGroup, Property, PropertyGroup
 

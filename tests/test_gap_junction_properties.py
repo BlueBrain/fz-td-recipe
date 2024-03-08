@@ -1,19 +1,18 @@
 """Test the seed part
 """
-import pytest
 
 from io import StringIO
-from fz_td_recipe import Recipe
+from fz_td_recipe import XMLRecipe
 
 
 def test_default_properties():
-    r = Recipe(StringIO(PROPERTIES_ABSENT))
+    r = XMLRecipe(StringIO(PROPERTIES_ABSENT))
     assert r.gap_junction_properties.gsyn == 0.2
     assert str(r) == PROPERTIES_ABSENT
 
 
 def test_full_properties():
-    r = Recipe(StringIO(PROPERTIES_FULL))
+    r = XMLRecipe(StringIO(PROPERTIES_FULL))
     assert r.gap_junction_properties.gsyn == 0.9
     assert str(r) == PROPERTIES_FULL
 

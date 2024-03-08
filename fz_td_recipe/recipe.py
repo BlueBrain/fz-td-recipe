@@ -1,152 +1,130 @@
-"""Top-Level Interface for Recipe Handling."""
-import logging
-import textwrap
-from io import StringIO
+"""Top-level interface for recipe handling."""
+
+import json
 from pathlib import Path
-from typing import Dict, List, Optional, TextIO
 
-from . import utils
-from .parts.bouton_density import InitialBoutonDistance
-from .parts.gap_junction_properties import GapJunctionProperties
-from .parts.seeds import Seeds
-from .parts.spine_lengths import SpineLengths
-from .parts.structure import InterBoutonInterval, StructuralSpineLengths
-from .parts.synapse_properties import SynapseProperties
-from .parts.synapse_reposition import SynapseShifts
-from .parts.touch_connections import ConnectionRules
-from .parts.touch_reduction import TouchReduction
-from .parts.touch_rules import TouchRules
-from .property import NotFound
+import jsonschema
+import pandas as pd
+import yaml
 
-logger = logging.getLogger(__name__)
+from .transform import _Pandifier
+
+SCHEMA = Path(__file__).parent / "data" / "schema.yaml"
+DEFAULTS = Path(__file__).parent / "data" / "defaults.yaml"
+
+
+PARQUET_CANDIDATES = ["synapse_properties.rules"]
+
+
+def _apply_defaults(settings, defaults):
+    if isinstance(defaults, (list, tuple)) and len(defaults) > 0:
+        (value,) = defaults
+        if isinstance(settings, (list, tuple)):
+            for item in settings:
+                _apply_defaults(item, value)
+        elif isinstance(settings, pd.DataFrame):
+            for k, v in value.items():
+                if k not in settings.columns:
+                    settings[k] = v
+    elif isinstance(defaults, dict):
+        for k, v in defaults.items():
+            if k not in settings:
+                settings[k] = v
+            elif isinstance(v, (dict, list, tuple)):
+                _apply_defaults(settings[k], v)
 
 
 class Recipe:
-    """Recipe information used for functionalizing circuits.
+    """Wrapper to load and validate a JSON or YAML recipe."""
 
-    Instances of this class can be used to parse the XML description of our
-    brain circuits, passed in via the parameter `path`.
-    All parts of the recipe present are extracted and can be accessed via
-    attributes, where optional parts may be set to ``None``.
+    def __init__(self, filename: Path, circuit_config, nodes):
+        """Open a recipe in `filename` using the corresponding circuit config.
 
-    Args:
-        path: path to an XML file to extract the recipe from
-        strict: will raise when additional attributes are encountered, on by default
-    """
-
-    bouton_interval: InterBoutonInterval
-    """The interval parametrization specifying how touches should be
-    distributed where cell morphologies overlap.
-    """
-
-    bouton_distances: Optional[InitialBoutonDistance] = None
-    """Optional definition of the bouton distances from the soma."""
-
-    connection_rules: Optional[ConnectionRules] = None
-    """Optional parameters for the connectivity reduction."""
-
-    gap_junction_properties: Optional[GapJunctionProperties] = None
-    """Optional definition of attributes for gap junctions."""
-
-    touch_reduction: Optional[TouchReduction] = None
-    """Optional parameter for a simple trimming of touches with a survival
-    probability."""
-
-    touch_rules: TouchRules
-    """Detailed definition of allowed synapses. All touches not matching
-    the definitions here will be removed."""
-
-    seeds: Seeds
-    """Seeds to use when generating random numbers during the touch
-    reduction stage."""
-
-    spine_lengths: SpineLengths
-    """Defines percentiles for the length of spines of synapses, i.e., the
-    distance between the surface positions of touches."""
-
-    structural_spine_lengths: StructuralSpineLengths
-    """Defines the maximum length of spines used by TouchDetector."""
-
-    synapse_properties: SynapseProperties
-    """Classifies synapses and assigns parameters for the physical
-    properties of the synapses."""
-
-    synapse_reposition: SynapseShifts
-    """Definition of re-assignment of somatic synapses to the first axon
-    segment."""
-
-    def __init__(self, path: Path, strict: bool = True):
-        """Create a new instance from `path`."""
-        xml = utils.load_xml(path)
-        for name, kind in self.__annotations__.items():  # pylint: disable=no-member
-            try:
-                if not hasattr(kind, "load"):
-                    (kind,) = [cls for cls in kind.__args__ if cls != type(None)]  # noqa
-                setattr(self, name, kind.load(xml, strict=strict))
-            except NotFound as e:
-                logger.warning("missing recipe part: %s", e)
-
-    def validate(self, values: Dict[str, List[str]]) -> bool:
-        """Validate basic functionality of the recipe.
-
-        Checks provided here-in test for basic coverage, and provides a
-        weak assertion that the recipe should be functional.
-
-        The parameter `values` should be a dictionary containing all
-        allowed values in the form ``fromMType``
+        The `filename` argument may point either to a JSON file ending in `.json` or a
+        YAML file ending in either `.yml` or `.yaml`.
         """
-
-        def _inner():
-            for name in self.__annotations__:  # pylint: disable=no-member
-                attr = getattr(self, name, None)
-                if attr and not attr.validate(values):
-                    yield False
-                yield True
-
-        return all(_inner())
-
-    def dump(self, fd: TextIO, connectivity_fd: Optional[TextIO] = None):
-        """Write the recipe to the provided file descriptors.
-
-        If `connectivity_fd` is given, the connection rules of the recipe
-        are written to it, otherwise dump the whole recipe to `fd`.
-        """
-        contents = []
-        header = ""
-        for name in self.__annotations__:  # pylint: disable=no-member
-            if not (hasattr(self, name) and getattr(self, name)):
-                continue
-            text = str(getattr(self, name))
-            if len(text) == 0:
-                continue
-            if name == "connection_rules" and connectivity_fd:
-                connectivity_fd.write(text)
-                contents.append("&connectivity;")
-                header = _CONNECTIVITY_DECLARATION.format(
-                    getattr(connectivity_fd, "name", "UNKNOWN")
-                )
+        with filename.open() as fd:
+            if filename.suffix == ".json":
+                self.__recipe = json.load(fd)
+            elif filename.suffix in (".yml", ".yaml"):
+                self.__recipe = yaml.safe_load(fd)
             else:
-                contents.append(text)
-        inner = textwrap.indent("\n".join(contents), "  ")
-        if inner:
-            inner = "\n" + inner
-        fd.write(_RECIPE_SKELETON.format(header, inner))
+                raise ValueError("Recipe needs to be JSON or YAML")
 
-    def __str__(self) -> str:
-        """Converts the recipe into XML."""
-        output = StringIO()
-        self.dump(output)
-        return output.getvalue()
+        with DEFAULTS.open() as fd:
+            defaults = yaml.safe_load(fd)
 
+        with SCHEMA.open() as fd:
+            schema = yaml.safe_load(fd)
 
-_RECIPE_SKELETON = """\
-<?xml version="1.0"?>{}
-<blueColumn>{}
-</blueColumn>
-"""
+        jsonschema.validate(instance=defaults, schema=schema)
+        jsonschema.validate(instance=self.__recipe, schema=schema)
 
-_CONNECTIVITY_DECLARATION = """
-<!DOCTYPE blueColumn [
-  <!ENTITY connectivity SYSTEM "{}">
-]>\
-"""
+        for key in PARQUET_CANDIDATES:
+            if (value := self.get(key)) and isinstance(value, str):
+                self.set(key, pd.read_parquet(filename.parent / value))
+
+        _apply_defaults(self.__recipe, defaults)
+
+        self._pandifier = _Pandifier(circuit_config, nodes)
+
+    def get(self, key):
+        """Get a recipe component under `key`.
+
+        Nested values are accessed by joining all keys with a period.
+        """
+        value = self.__recipe
+        for component in key.split("."):
+            if component in value:
+                value = value[component]
+            else:
+                return None
+        return value
+
+    def get_values(self, columns):
+        """Return a dictionary with all values of the specified columns.
+
+        Dictionary keys are the column names, values are taken from the corresponding node
+        population of the circuit configuration passed to the constructor.
+        """
+        return self._pandifier.get_values(columns)
+
+    def set(self, key, value):
+        """Set a recipe component under `key`.
+
+        Nested values are set by joining all keys with a period.
+        """
+        container = self.__recipe
+        *parts, last = key.split(".")
+        for part in parts:
+            if part in container:
+                container = container[part]
+            else:
+                raise ValueError(f"{key} cannot be set")
+        container[last] = value
+
+    def as_matrix(self, component):
+        """Construct a rule assignment matrix.
+
+        Takes a list of rules, determines which columns relating to the source and target
+        population are of essence (contain more than just general wildcards `*`).  The
+        enumeration value count in the corresponding node population `@libray` enumeration
+        then is used to construct a matrix, where the entries in the matrix set depending
+        on the numerical values of the columns, with wildcards expanded.
+
+        Returns a tuple containing the list of columns used (ordered corresponding to the
+        matrix dimensions) and the matrix itself.
+        """
+        return self._pandifier.matrify(self.get(component))
+
+    def as_pandas(self, component):
+        """Converts the rules in `component` to a Pandas DataFrame.
+
+        All partial wildcards will be expanded, and columns relating to source or target
+        population will be converted to numerical values corresponding to the `@library`
+        enumeration entries in the node populations.
+        """
+        comp = self.get(component)
+        if isinstance(comp, pd.DataFrame):
+            return comp
+        return self._pandifier.framify(comp)

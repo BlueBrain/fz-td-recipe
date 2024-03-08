@@ -1,4 +1,5 @@
 """Specifications for synapse distance from the soma."""
+
 from ..property import Property, singleton
 
 

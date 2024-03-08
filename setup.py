@@ -26,10 +26,22 @@ setup(
         "Source": "git@bbpgitlab.epfl.ch:hpc/circuit-building/fz-td-recipe.git",
     },
     license="BBP-internal-confidential",
-    install_requires=["lxml", "numpy", "pandas"],
+    install_requires=[
+        "click",
+        "jsonschema",
+        "libsonata",
+        "lxml<5",
+        "numpy",
+        "pandas[pyarrow]",
+        "pyyaml",
+    ],
     packages=find_packages(),
+    package_data={
+        "fz_td_recipe": ["data/*.yaml"],
+    },
     python_requires=">=3.9",
     extras_require={"docs": ["sphinx", "sphinx-bluebrain-theme"]},
+    entry_points={"console_scripts": ["fz-td-recipe=fz_td_recipe.cli:app"]},
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Education",

@@ -1,4 +1,5 @@
 """Utility functions."""
+
 import logging
 
 from lxml import etree

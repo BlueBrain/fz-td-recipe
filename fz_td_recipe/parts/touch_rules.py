@@ -1,4 +1,5 @@
 """Removing touches with simple rules."""
+
 import fnmatch
 import itertools
 import logging

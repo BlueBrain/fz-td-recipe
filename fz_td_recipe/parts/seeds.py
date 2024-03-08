@@ -1,4 +1,5 @@
 """Seed specification."""
+
 from ..property import Property, singleton
 
 

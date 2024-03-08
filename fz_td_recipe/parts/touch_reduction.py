@@ -1,4 +1,5 @@
 """Simple touch reduction."""
+
 from ..property import Property, singleton
 
 

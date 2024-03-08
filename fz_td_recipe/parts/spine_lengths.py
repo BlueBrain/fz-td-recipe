@@ -1,4 +1,5 @@
 """Spine length specification."""
+
 from ..property import Property, PropertyGroup
 
 

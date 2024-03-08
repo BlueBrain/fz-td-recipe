@@ -1,4 +1,5 @@
 """Specification of synaptic properties and classification."""
+
 import logging
 from typing import Dict, List
 
@@ -31,7 +32,7 @@ class SynapseRule(PathwayProperty):
             raise ValueError("Synapse type needs to start with either 'E' or 'I'")
 
 
-class SpynapseRules(PathwayPropertyGroup):
+class SynapseRules(PathwayPropertyGroup):
     """A group of `SynapseRule`."""
 
     _kind = SynapseRule
@@ -133,7 +134,7 @@ class SynapseProperties:
     :class:`~SynapseClasses`.
     """
 
-    rules: SpynapseRules
+    rules: SynapseRules
     classes: SynapseClasses
 
     def __init__(self, rules, classes):
@@ -160,7 +161,7 @@ class SynapseProperties:
         Will check if any of the classification rules and property rules are unmatched or
         duplicated.
         """
-        rules = SpynapseRules.load(xml, strict)
+        rules = SynapseRules.load(xml, strict)
         classes = SynapseClasses.load(xml, strict)
 
         duplicates = list(cls._duplicated(classes))

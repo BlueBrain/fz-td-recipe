@@ -1,4 +1,5 @@
 """Parametrization of synapse connectivity."""
+
 import functools
 import logging
 import operator
@@ -39,6 +40,20 @@ class ConnectionRule(PathwayProperty):
         mine = sum(getattr(self, col) == "*" for col in self.columns())
         theirs = sum(getattr(other, col) == "*" for col in self.columns())
         return mine <= theirs
+
+    def __lt__(self, other: "ConnectionRule") -> bool:
+        """Less specialized rules are smaller, then by attribute."""
+        mine = sum(getattr(self, col) == "*" for col in self.columns())
+        theirs = sum(getattr(other, col) == "*" for col in self.columns())
+        if mine > theirs:
+            return True
+        if mine == theirs:
+            for col in self.columns():
+                left = getattr(self, col)
+                right = getattr(other, col)
+                if left < right and left != "*" and right != "*":
+                    return True
+        return False
 
     def validate(self, _: Dict[str, List[str]] = None) -> bool:
         """Verifies that every rule uses only allowed attribute combinations."""

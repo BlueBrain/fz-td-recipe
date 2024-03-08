@@ -1,0 +1,12 @@
+bouton_distances:
+  excitatory_synapse_distance: 25.0
+  inhibitory_synapse_distance: 5.0
+gap_junction_properties:
+  conductance: 0.2
+seed: 0
+synapse_properties:
+  rules:
+    - class: "Iplaceholder"
+      neural_transmitter_release_delay: 0.1
+      axonal_conduction_velocity: 300.0
+  classes: []

@@ -1,11 +1,12 @@
 """Test synapse property mapping
 """
+
 from io import StringIO
-from fz_td_recipe import Recipe
+from fz_td_recipe import XMLRecipe
 
 
 def test_synapse_properties():
-    r = Recipe(StringIO(RECIPE))
+    r = XMLRecipe(StringIO(RECIPE))
     assert set(r.synapse_properties.rules.required) == set(
         ["fromRegion", "fromHemisphere", "toRegion", "toHemisphere"]
     )

@@ -1,4 +1,5 @@
 """Specification of moving synapses."""
+
 import fnmatch
 import itertools
 from typing import Iterable, Iterator, Tuple
