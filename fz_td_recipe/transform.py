@@ -18,6 +18,15 @@ from .property import Property, PropertyGroup
 _CAMEL_CASE = re.compile(r"(?<=[^A-Z_])([A-Z][a-z0-9]*)")
 _DIRECTIONAL_PREFIXES = ["src", "dst", "afferent", "efferent"]
 _EDGE_DIRECTIONS = ["afferent", "efferent"]
+_PROPERTY_REPLACEMENTS = [
+    (re.compile(r"^gsyn((?=_)|\b)"), "conductance"),
+    (re.compile(r"_srsf((?=_)|\b)"), "_scale_factor"),
+    (re.compile(r"^dtc((?=_)|\b)"), "decay_time"),
+    (re.compile(r"^d((?=_)|\b)"), "depression_time"),
+    (re.compile(r"^f((?=_)|\b)"), "facilitation_time"),
+    (re.compile(r"^nrrp((?=_)|\b)"), "n_rrp_vesicles"),
+    (re.compile(r"^u((?=_)|\b)"), "u_syn"),
+]
 _REPLACEMENTS = [
     (re.compile(r"\bfrom_"), "src_"),
     (re.compile(r"\bto_"), "dst_"),
@@ -31,13 +40,6 @@ _REPLACEMENTS = [
     (re.compile(r"^id$"), "class"),
     (re.compile(r"^p_a$"), "p_A"),
     (re.compile(r"^p_mu_a$"), "pMu_A"),
-    (re.compile(r"^gsyn((?=_)|\b)"), "conductance"),
-    (re.compile(r"_srsf((?=_)|\b)"), "_scale_factor"),
-    (re.compile(r"^dtc((?=_)|\b)"), "decay_time"),
-    (re.compile(r"^d((?=_)|\b)"), "depression_time"),
-    (re.compile(r"^f((?=_)|\b)"), "facilitation_time"),
-    (re.compile(r"^nrrp((?=_)|\b)"), "n_rrp_vesicles"),
-    (re.compile(r"^u((?=_)|\b)"), "u_syn"),
 ]
 _SECTION_TYPES = ["soma", "axon", "apical", "basal"]
 _SPECIAL_REPLACEMENTS = {
@@ -56,6 +58,10 @@ def _rename(s):
     snaked = _snake_case(s)
     for expr, repl in _REPLACEMENTS:
         snaked = re.sub(expr, repl, snaked)
+    for expr, repl in _PROPERTY_REPLACEMENTS:
+        if expr.search(snaked):
+            suffix = "" if snaked.endswith("_sd") else "_mu"
+            snaked = re.sub(expr, repl, snaked) + suffix
     return snaked
 
 

@@ -146,29 +146,29 @@ properties:
           additionalProperties: false
           required:
             - class
-            - conductance
+            - conductance_mu
             - conductance_sd
-            - decay_time
+            - decay_time_mu
             - decay_time_sd
-            - depression_time
+            - depression_time_mu
             - depression_time_sd
-            - facilitation_time
+            - facilitation_time_mu
             - facilitation_time_sd
-            - n_rrp_vesicles
-            - u_syn
+            - n_rrp_vesicles_mu
+            - u_syn_mu
             - u_syn_sd
           properties:
             class:
               type: string
               pattern: "^[EI][A-Za-z0-9-_]+$"
-            n_rrp_vesicles:
+            n_rrp_vesicles_mu:
               type: number
             conductance_scale_factor:
               type: number
             u_hill_coefficient:
               type: number
           patternProperties:
-            "^((decay|depression|facilitation)_time|conductance|u_syn)(_sd)?":
+            "^((decay|depression|facilitation)_time|conductance|u_syn)_(sd|mu)":
               type: number
       rules:
         oneOf:
