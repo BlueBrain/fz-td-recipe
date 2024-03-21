@@ -7,7 +7,7 @@ import pytest
 
 
 def test_minimal(recipe, circuit_config):
-    r = Recipe(recipe("json", "{}"), circuit_config, (None, None))
+    r = Recipe(recipe("json", '{"version": 1}'), circuit_config, (None, None))
 
     assert r.get("bouton_distances.excitatory_synapse_distance") == 25.0
     assert r.get("gap_junction_properties.conductance") == 0.2
@@ -59,6 +59,7 @@ def test_simple_load_invalid(recipe, circuit_config):
 
 
 RECIPE_SIMPLE = """
+version: 1
 seed: 123
 bouton_distances:
     excitatory_synapse_distance: 55.0

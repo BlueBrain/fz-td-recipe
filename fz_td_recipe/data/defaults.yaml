@@ -4,6 +4,7 @@ bouton_distances:
 gap_junction_properties:
   conductance: 0.2
 seed: 0
+version: 1
 synapse_properties:
   rules:
     - class: "Iplaceholder"

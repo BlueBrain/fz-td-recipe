@@ -1,5 +1,6 @@
 type: object
 additionalProperties: false
+required: [version]
 $defs:
   section_type:
     enum: ["*", "soma", "axon", "dendrite", "apical", "basal"]
@@ -43,6 +44,14 @@ $defs:
         not:
           required: [cv_syns_connection, probability, stdev_syns_connection, mean_syns_connection]
 properties:
+  seed:
+    description: Seed used when generating random numbers to sample reduce and cut survival and synaptic properties
+    type: integer
+  version:
+    description: Version identifier for the recipe.
+    type: integer
+    minimum: 1
+    maximum: 1
   bouton_distances:
     additionalProperties: false
     properties:
@@ -72,9 +81,6 @@ properties:
         description: the minimum distance between two areas designated as touch regions
         minimum: 0
         type: number
-  seed:
-    description: Seed used when generating random numbers to sample reduce and cut survival and synaptic properties
-    type: integer
   structural_spine_lengths:
     type: array
     items:

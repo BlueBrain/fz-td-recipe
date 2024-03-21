@@ -279,5 +279,7 @@ class _RecipeEncoder(json.JSONEncoder):
             for name in o.__annotations__:
                 if hasattr(o, name) and getattr(o, name) is not None:
                     result[_rename(name)] = self.default(getattr(o, name))
+            if isinstance(o, XMLRecipe):
+                result["version"] = 1
             return result
         raise ValueError(f"Unknown object in recipe: {o}")  # pragma: no cover
