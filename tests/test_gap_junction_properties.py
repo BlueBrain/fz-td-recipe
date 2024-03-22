@@ -31,10 +31,3 @@ PROPERTIES_FULL = """\
   <GapJunctionProperty gsyn="0.9" />
 </blueColumn>
 """
-
-PROPERTIES_PARTIAL = """\
-<?xml version="1.0"?>
-<blueColumn>
-  <GapJunctionProperty gsyn="0.9" />
-</blueColumn>
-"""

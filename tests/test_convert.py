@@ -54,6 +54,34 @@ def test_convert(circuit_config, recipe, tmp_path):
     assert_frame_equal(df1, df2)
 
 
+def test_convert_gj(circuit_config, recipe, tmp_path):
+    xml_path = recipe("xml", RECIPE_BASIC_XML_GJ)
+    json_path = tmp_path / "converted.json"
+    runner = CliRunner()
+    result = runner.invoke(app, ["convert", str(xml_path), str(json_path)])
+
+    assert result.exit_code == 0
+    assert result.output == ""
+
+    r = Recipe(json_path, circuit_config, (None, None))
+
+    assert r.get("gap_junction_properties.conductance") == 0.9
+
+
+def test_convert_gj(circuit_config, recipe, tmp_path):
+    xml_path = recipe("xml", RECIPE_EMPTY_XML_GJ)
+    json_path = tmp_path / "converted.json"
+    runner = CliRunner()
+    result = runner.invoke(app, ["convert", str(xml_path), str(json_path)])
+
+    assert result.exit_code == 0
+    assert result.output == ""
+
+    r = Recipe(json_path, circuit_config, (None, None))
+
+    assert r.get("gap_junction_properties.conductance") == 0.2
+
+
 RECIPE_BASIC_XML = """
 <recipe>
   <TouchRules>
@@ -64,7 +92,21 @@ RECIPE_BASIC_XML = """
     <synapse fromRegion="*am" type="EEE" />
   </SynapsesProperties>
   <SynapsesClassification>
-    <class id="EEE" gsyn="1" gsynSD="2" nrrp="3" dtc="4" dtcSD="5" u="6" uSD="7" d="8" dSD="9" f="10" fSD="11" />
+    <class id="EEE" gsyn="1" gsynSD="2" nrrp="3" dtc="4" dtcSD="5" u="6" uSD="7" d="8" dSD="9" f="10" fSD="11" gsynSRSF="313" uHillCoefficient="123" />
   </SynapsesClassification>
 </recipe>
+"""
+
+RECIPE_BASIC_XML_GJ = """\
+<?xml version="1.0"?>
+<blueColumn>
+  <GapJunctionProperty gsyn="0.9" />
+</blueColumn>
+"""
+
+RECIPE_EMPTY_XML_GJ = """\
+<?xml version="1.0"?>
+<blueColumn>
+  <GapJunctionProperty />
+</blueColumn>
 """

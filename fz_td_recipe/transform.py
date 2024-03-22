@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from .legacy import XMLRecipe
+from .parts.gap_junction_properties import GapJunctionProperties
 from .parts.seeds import Seeds
 from .parts.synapse_properties import SynapseProperties, SynapseRules
 from .parts.touch_rules import TouchRule
@@ -19,13 +20,12 @@ _CAMEL_CASE = re.compile(r"(?<=[^A-Z_])([A-Z][a-z0-9]*)")
 _DIRECTIONAL_PREFIXES = ["src", "dst", "afferent", "efferent"]
 _EDGE_DIRECTIONS = ["afferent", "efferent"]
 _PROPERTY_REPLACEMENTS = [
-    (re.compile(r"^gsyn((?=_)|\b)"), "conductance"),
-    (re.compile(r"_srsf((?=_)|\b)"), "_scale_factor"),
-    (re.compile(r"^dtc((?=_)|\b)"), "decay_time"),
-    (re.compile(r"^d((?=_)|\b)"), "depression_time"),
-    (re.compile(r"^f((?=_)|\b)"), "facilitation_time"),
-    (re.compile(r"^nrrp((?=_)|\b)"), "n_rrp_vesicles"),
-    (re.compile(r"^u((?=_)|\b)"), "u_syn"),
+    (re.compile(r"^gsyn((?=_sd)|\b)"), "conductance"),
+    (re.compile(r"^dtc((?=_sd)|\b)"), "decay_time"),
+    (re.compile(r"^d((?=_sd)|\b)"), "depression_time"),
+    (re.compile(r"^f((?=_sd)|\b)"), "facilitation_time"),
+    (re.compile(r"^nrrp((?=_sd)|\b)"), "n_rrp_vesicles"),
+    (re.compile(r"^u((?=_sd)|\b)"), "u_syn"),
 ]
 _REPLACEMENTS = [
     (re.compile(r"\bfrom_"), "src_"),
@@ -40,6 +40,8 @@ _REPLACEMENTS = [
     (re.compile(r"^id$"), "class"),
     (re.compile(r"^p_a$"), "p_A"),
     (re.compile(r"^p_mu_a$"), "pMu_A"),
+    (re.compile(r"_srsf((?=_)|\b)"), "_scale_factor"),
+    (re.compile(r"^gsyn((?=_)|\b)"), "conductance"),
 ]
 _SECTION_TYPES = ["soma", "axon", "apical", "basal"]
 _SPECIAL_REPLACEMENTS = {
@@ -56,12 +58,12 @@ def _snake_case(s):
 def _rename(s):
     """Transform the given string into a functionalizer compatible one."""
     snaked = _snake_case(s)
-    for expr, repl in _REPLACEMENTS:
-        snaked = re.sub(expr, repl, snaked)
     for expr, repl in _PROPERTY_REPLACEMENTS:
         if expr.search(snaked):
             suffix = "" if snaked.endswith("_sd") else "_mu"
             snaked = re.sub(expr, repl, snaked) + suffix
+    for expr, repl in _REPLACEMENTS:
+        snaked = re.sub(expr, repl, snaked)
     return snaked
 
 
@@ -265,6 +267,9 @@ class _RecipeEncoder(json.JSONEncoder):
             if isinstance(o, TouchRule):
                 result.pop("dst_layer", None)
                 result.pop("src_layer", None)
+            if isinstance(o, GapJunctionProperties):
+                if conductance := result.pop("conductance_mu", None):
+                    result["conductance"] = conductance
             return result
         if isinstance(o, PropertyGroup):
             if isinstance(o, SynapseRules) and self.pandifier:
