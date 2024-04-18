@@ -1,8 +1,10 @@
 name: Run tests and lint
 
 on:
-  - push
-  - pull_request
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
 
 jobs:
   build:
@@ -23,3 +25,12 @@ jobs:
         python -m pip install tox tox-gh-actions
     - name: Test with tox
       run: tox
+    - name: List coverage
+      run: ls -l
+    - name: Get coverage
+      if:
+        matrix.python-version == '3.12' && github.event_name != 'pull_request'
+      uses: orgoro/coverage@v3.1
+      with:
+        coverageFile: coverage.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
