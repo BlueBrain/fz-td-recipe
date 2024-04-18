@@ -13,16 +13,14 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-
-from pkg_resources import get_distribution
-
+import importlib.metadata
 
 # -- Project information -----------------------------------------------------
 
 project = "fz-td-recipe"
 
 # The short X.Y version
-version = get_distribution("fz_td_recipe").version
+version = importlib.metadata.version("fz_td_recipe")
 
 # The full version, including alpha/beta/rc tags
 release = version

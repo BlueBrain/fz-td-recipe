@@ -1,9 +1,8 @@
-"""Test recipe class.
-"""
-
-from fz_td_recipe import Recipe
+"""Test recipe class."""
 
 import pytest
+
+from fz_td_recipe import Recipe
 
 
 def test_minimal(recipe, circuit_config):
@@ -69,4 +68,4 @@ touch_rules:
 
 RECIPE_SIMPLE_INVALID_ADDENDUM = """
     - {src_mtype: "mitterand", dst_mtype: "*", afferent_section_type: "*", efferent_section_type: "soma"}
-"""
+"""  # noqa: E501

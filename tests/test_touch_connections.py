@@ -1,7 +1,7 @@
-"""Tests the touch connections
-"""
+"""Tests the touch connections"""
 
 from io import StringIO
+
 from fz_td_recipe import XMLRecipe
 
 

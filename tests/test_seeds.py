@@ -1,9 +1,9 @@
-"""Test the seed part
-"""
+"""Test the seed part"""
+
+from io import StringIO
 
 import pytest
 
-from io import StringIO
 from fz_td_recipe import XMLRecipe
 
 

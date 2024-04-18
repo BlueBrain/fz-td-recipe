@@ -68,7 +68,7 @@ def test_convert_gj(circuit_config, recipe, tmp_path):
     assert r.get("gap_junction_properties.conductance") == 0.9
 
 
-def test_convert_gj(circuit_config, recipe, tmp_path):
+def test_convert_gj_defaults(circuit_config, recipe, tmp_path):
     xml_path = recipe("xml", RECIPE_EMPTY_XML_GJ)
     json_path = tmp_path / "converted.json"
     runner = CliRunner()
@@ -95,7 +95,7 @@ RECIPE_BASIC_XML = """
     <class id="EEE" gsyn="1" gsynSD="2" nrrp="3" dtc="4" dtcSD="5" u="6" uSD="7" d="8" dSD="9" f="10" fSD="11" gsynSRSF="313" uHillCoefficient="123" />
   </SynapsesClassification>
 </recipe>
-"""
+"""  # noqa: E501
 
 RECIPE_BASIC_XML_GJ = """\
 <?xml version="1.0"?>

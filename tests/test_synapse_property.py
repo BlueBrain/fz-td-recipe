@@ -1,7 +1,7 @@
-"""Test synapse property mapping
-"""
+"""Test synapse property mapping"""
 
 from io import StringIO
+
 from fz_td_recipe import XMLRecipe
 
 
@@ -26,4 +26,4 @@ RECIPE = """\
     <class id="I3"  gsyn="2.0" gsynSD="0.0" dtc="8.30" dtcSD="2.2" u="0.25" uSD="0.13" d="706" dSD="405" f="021" fSD="9" />
   </SynapsesClassification>
 </blueColumn>
-"""
+"""  # noqa: E501

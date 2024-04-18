@@ -1,11 +1,10 @@
-"""Test recipe class
-"""
+"""Test recipe class"""
 
 from io import StringIO
-from lxml import etree
 from pathlib import Path
 
 import pytest
+from lxml import etree
 
 from fz_td_recipe import XMLRecipe
 
