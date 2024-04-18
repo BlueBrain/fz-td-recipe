@@ -33,7 +33,9 @@ jobs:
     - name: Get coverage
       if:
         matrix.toxenv == 'coverage' && github.event_name == 'pull_request'
-      uses: orgoro/coverage@v3.1
+      uses: codecov/codecov-action@v4
       with:
-        coverageFile: coverage.xml
-        token: ${{ secrets.GITHUB_TOKEN }}
+        fail_ci_if_error: false
+        files: ./coverage.xml
+        flags: pytest
+        name: "fz-td-recipe-py312"
