@@ -24,8 +24,8 @@ Or to get the latest code, build it from ``git``:
 Usage
 -----
 
-A small command line utility is provided to convert legacy XML recipes and validate if a
-JSON or YAML file conforms to the recipe schema:
+A small command line utility is provided to convert legacy XML recipes and validate
+whether a JSON or YAML file conforms to the recipe schema:
 
 .. code-block:: console
 
