@@ -21,7 +21,7 @@ dependencies = [
     "click",
     "jsonschema",
     "libsonata",
-    "lxml<5",
+    "lxml>=5",
     "numpy",
     "pandas[pyarrow]",
     "pyyaml",

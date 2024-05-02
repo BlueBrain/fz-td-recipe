@@ -11,7 +11,7 @@ def load_xml(recipe):
     """Extract the xml root from `recipe`, which may either be a path or string."""
     try:
         # Parse the given XML file:
-        parser = etree.XMLParser(remove_comments=True)
+        parser = etree.XMLParser(remove_comments=True, resolve_entities=True)
         tree = etree.parse(recipe, parser)
     except (etree.XMLSyntaxError, etree.ParserError) as err:
         logger.warning("could not parse xml of recipe '%s'", recipe)
