@@ -8,7 +8,7 @@ $defs:
     type: object
     additionalProperties: false
     patternProperties:
-      "^(src|dst)_([em]type|region|synapse_class)$":
+      "^(src|dst)_([em]type|region|synapse_class|mclass)$":
         type: string
     properties:
       active_fraction:
@@ -193,6 +193,6 @@ properties:
                   type: string
                   pattern: "^[EI][A-Za-z0-9-_]+$"
               patternProperties:
-                "^(src|dst)_([em]type|region|synapse_class)$":
+                "^(src|dst)_([em]type|region|synapse_class|mclass)$":
                   type: string
           - type: string
