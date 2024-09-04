@@ -683,7 +683,7 @@ class PathwayPropertyGroup(PropertyGroup):
         >>> # The last rule matches Bar/Spam
         >>> idx = m[rules.pathway_index({'toMType': 'Bar', 'toRegion': 'Spam'}, values)]
         >>> idx
-        2
+        np.uint32(2)
         >>> rules[idx]
         <rule fromMType="*" toMType="Bar" toRegion="Spam" />
         """
