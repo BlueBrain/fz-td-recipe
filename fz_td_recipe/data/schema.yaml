@@ -174,8 +174,14 @@ properties:
             u_hill_coefficient:
               type: number
           patternProperties:
-            "^((decay|depression|facilitation)_time|conductance|u_syn)_(sd|mu)":
+            "^(decay_time|u_syn)_mu":
               type: number
+            "^(decay_time|u_syn)_sd":
+              type: number
+              exclusiveMinimum: 0
+            "^((depression|facilitation)_time|conductance)_(sd|mu)":
+              type: number
+              exclusiveMinimum: 0
       rules:
         oneOf:
           - type: array
