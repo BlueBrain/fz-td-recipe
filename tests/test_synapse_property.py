@@ -16,7 +16,7 @@ def test_synapse_properties():
     )
 
 
-def test_valid_synapse_properties(circuit_config, tmp_path, parameter):
+def test_valid_synapse_properties(circuit_config, tmp_path):
     data = json.loads(RECIPE_JSON)
 
     recipe_file = tmp_path / "recipe.json"
@@ -45,7 +45,7 @@ def test_invalid_synapse_properties(circuit_config, tmp_path, parameter):
     recipe_file = tmp_path / "recipe.json"
     with recipe_file.open("w") as fd:
         json.dump(data, fd)
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match=parameter):
         Recipe(recipe_file, circuit_config, (None, None))
 
 
@@ -65,7 +65,7 @@ RECIPE_JSON = """\
       {
         "class": "I1",
         "n_rrp_vesicles_mu": 1,
-        "conductance_mu": 0.0,
+        "conductance_mu": 1.0,
         "conductance_sd": 0.1,
         "decay_time_mu": 8.3,
         "decay_time_sd": 2.2,
